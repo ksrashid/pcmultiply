@@ -29,6 +29,7 @@
  *  TCSS 422 - Operating Systems
  */
 
+//#include <bits/pthreadtypes.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <pthread.h>
@@ -87,37 +88,37 @@ int main (int argc, char * argv[])
   // Seed the random number generator with the system time
   srand((unsigned) time(&t));
 
-  //
-  // Demonstration code to show the use of matrix routines
-  //
-  // DELETE THIS CODE FOR YOUR SUBMISSION
-  // ----------------------------------------------------------
-  bigmatrix = (Matrix **) malloc(sizeof(Matrix *) * BOUNDED_BUFFER_SIZE);
-  printf("MATRIX MULTIPLICATION DEMO:\n\n");
-  Matrix *m1, *m2, *m3;
-  for (int i=0;i<NUMBER_OF_MATRICES;i++)
-  {
-    m1 = GenMatrixRandom();
-    m2 = GenMatrixRandom();
-    m3 = MatrixMultiply(m1, m2);
-    if (m3 != NULL)
-    {
-      DisplayMatrix(m1,stdout);
-      printf("    X\n");
-      DisplayMatrix(m2,stdout);
-      printf("    =\n");
-      DisplayMatrix(m3,stdout);
-      printf("\n");
-      FreeMatrix(m3);
-      FreeMatrix(m2);
-      FreeMatrix(m1);
-      m1=NULL;
-      m2=NULL;
-      m3=NULL;
-    }
-  }
-  return 0;
-  // ----------------------------------------------------------
+  // //
+  // // Demonstration code to show the use of matrix routines
+  // //
+  // // DELETE THIS CODE FOR YOUR SUBMISSION
+  // // ----------------------------------------------------------
+  // bigmatrix = (Matrix **) malloc(sizeof(Matrix *) * BOUNDED_BUFFER_SIZE);
+  // printf("MATRIX MULTIPLICATION DEMO:\n\n");
+  // Matrix *m1, *m2, *m3;
+  // for (int i=0;i<NUMBER_OF_MATRICES;i++)
+  // {
+  //   m1 = GenMatrixRandom();
+  //   m2 = GenMatrixRandom();
+  //   m3 = MatrixMultiply(m1, m2);
+  //   if (m3 != NULL)
+  //   {
+  //     DisplayMatrix(m1,stdout);
+  //     printf("    X\n");
+  //     DisplayMatrix(m2,stdout);
+  //     printf("    =\n");
+  //     DisplayMatrix(m3,stdout);
+  //     printf("\n");
+  //     FreeMatrix(m3);
+  //     FreeMatrix(m2);
+  //     FreeMatrix(m1);
+  //     m1=NULL;
+  //     m2=NULL;
+  //     m3=NULL;
+  //   }
+  // }
+  // return 0;
+  // // ----------------------------------------------------------
 
 
 
@@ -131,8 +132,19 @@ int main (int argc, char * argv[])
   pthread_t co;
 
   // Add your code here to create threads and so on
+  counters_t prod_cons_counters;
 
+  prod_cons_counters.prod = (counter_t *) malloc(sizeof(counter_t));
+  prod_cons_counters.cons = (counter_t *) malloc(sizeof(counter_t));
 
+  init_cnt(prod_cons_counters.prod);
+  init_cnt(prod_cons_counters.cons);
+
+  bigmatrix = (Matrix **) malloc(sizeof(Matrix *) * BOUNDED_BUFFER_SIZE);
+  pthread_create(&pr,NULL, prod_worker, &prod_cons_counters);
+  pthread_create(&co,NULL, cons_worker, &prod_cons_counters);
+  pthread_join(pr, NULL);
+  pthread_join(co, NULL);
   // These are used to aggregate total numbers for main thread output
   int prs = 0; // total #matrices produced
   int cos = 0; // total #matrices consumed
