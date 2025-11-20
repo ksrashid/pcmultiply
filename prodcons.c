@@ -24,6 +24,7 @@
 // Define Locks, Condition variables, and so on here
 pthread_mutex_t buffer_mutex = PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t print_mutex = PTHREAD_MUTEX_INITIALIZER;
+	
 pthread_cond_t not_full = PTHREAD_COND_INITIALIZER;
 pthread_cond_t not_empty = PTHREAD_COND_INITIALIZER;
 
@@ -63,6 +64,10 @@ Matrix * get()
 
   while (count == 0) {
     pthread_cond_wait(&not_empty, &buffer_mutex);
+    if (count == 0) {
+	pthread_mutex_unlock(&buffer_mutex);
+	return NULL;
+    }
   }
 
   Matrix *result = bigmatrix[idx_con];
@@ -105,6 +110,12 @@ void *cons_worker(void *arg)
       }
       
       m1 = get();
+      while (m1 == NULL) {
+	consumed = get_cnt(counters->cons);
+	if (consumed < NUMBER_OF_MATRICES) {
+	  m1 = get();
+	}
+      }
       increment_cnt(counters->cons);
     }
 
@@ -113,11 +124,17 @@ void *cons_worker(void *arg)
     if (consumed >= NUMBER_OF_MATRICES) {
       break;
     }
-
+	
     m2 = get();
+    while (m2 == NULL) {
+      consumed = get_cnt(counters->cons);
+      if (consumed < NUMBER_OF_MATRICES) {
+	m2 = get();
+      }
+    }
     increment_cnt(counters->cons);
 
-    pthread_mutex_unlock(&print_mutex);
+    pthread_mutex_lock(&print_mutex);
     m3 = MatrixMultiply(m1, m2);
 
     if (m3 != NULL) { 
@@ -137,9 +154,10 @@ void *cons_worker(void *arg)
       FreeMatrix(m2);
       m2 = NULL;
     }
-  }
-  pthread_mutex_unlock(&print_mutex);
+    pthread_mutex_unlock(&print_mutex);
 
+  }
+ 
 
 
   if (m1 != NULL) {

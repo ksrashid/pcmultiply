@@ -151,9 +151,10 @@ int main (int argc, char * argv[])
 
   void* vptr;
 
+
   for (int i = 0; i < numw; i++) {
-    pthread_join(pr[i], vptr);
-    ProdConsStats* project = (ProdConsStats*) vptr;
+    ProdConsStats* project;
+    pthread_join(pr[i], (void **)&vptr); 
     project->matrixtotal;
   }
   for (int i = 0; i < numw; i++) {
