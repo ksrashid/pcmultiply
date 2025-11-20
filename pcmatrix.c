@@ -128,8 +128,8 @@ int main (int argc, char * argv[])
   printf("\n");
 
   // Here is an example to define one producer and one consumer
-  pthread_t pr;
-  pthread_t co;
+  pthread_t pr[numw];
+  pthread_t co[numw];
 
   // Add your code here to create threads and so on
   counters_t prod_cons_counters;
@@ -141,10 +141,21 @@ int main (int argc, char * argv[])
   init_cnt(prod_cons_counters.cons);
 
   bigmatrix = (Matrix **) malloc(sizeof(Matrix *) * BOUNDED_BUFFER_SIZE);
-  pthread_create(&pr,NULL, prod_worker, &prod_cons_counters);
-  pthread_create(&co,NULL, cons_worker, &prod_cons_counters);
-  pthread_join(pr, NULL);
-  pthread_join(co, NULL);
+
+  for (int i = 0; i < numw; i++) {    
+    pthread_create(&pr[i],NULL, prod_worker, &prod_cons_counters);
+  }
+  for (int i = 0; i < numw; i++) {    
+    pthread_create(&co[i],NULL, cons_worker, &prod_cons_counters);
+  }
+
+  for (int i = 0; i < numw; i++) {
+    pthread_join(pr[i], NULL);
+  }
+  for (int i = 0; i < numw; i++) {
+    pthread_join(co[i], NULL);
+  }
+
   // These are used to aggregate total numbers for main thread output
   int prs = 0; // total #matrices produced
   int cos = 0; // total #matrices consumed
