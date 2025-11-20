@@ -23,6 +23,7 @@
 
 // Define Locks, Condition variables, and so on here
 pthread_mutex_t buffer_mutex = PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_t print_mutex = PTHREAD_MUTEX_INITIALIZER;
 pthread_cond_t not_full = PTHREAD_COND_INITIALIZER;
 pthread_cond_t not_empty = PTHREAD_COND_INITIALIZER;
 
@@ -116,6 +117,7 @@ void *cons_worker(void *arg)
     m2 = get();
     increment_cnt(counters->cons);
 
+    pthread_mutex_unlock(&print_mutex);
     m3 = MatrixMultiply(m1, m2);
 
     if (m3 != NULL) { 
@@ -133,8 +135,12 @@ void *cons_worker(void *arg)
       m3=NULL;
     } else {
       FreeMatrix(m2);
+      m2 = NULL;
     }
   }
+  pthread_mutex_unlock(&print_mutex);
+
+
 
   if (m1 != NULL) {
     FreeMatrix(m1);

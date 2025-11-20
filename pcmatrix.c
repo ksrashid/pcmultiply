@@ -149,8 +149,12 @@ int main (int argc, char * argv[])
     pthread_create(&co[i],NULL, cons_worker, &prod_cons_counters);
   }
 
+  void* vptr;
+
   for (int i = 0; i < numw; i++) {
-    pthread_join(pr[i], NULL);
+    pthread_join(pr[i], vptr);
+    ProdConsStats* project = (ProdConsStats*) vptr;
+    project->matrixtotal;
   }
   for (int i = 0; i < numw; i++) {
     pthread_join(co[i], NULL);
