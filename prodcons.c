@@ -65,13 +65,12 @@ Matrix * get()
   while (count == 0) {
     pthread_cond_wait(&not_empty, &buffer_mutex);
     if (count == 0) {
-	pthread_mutex_unlock(&buffer_mutex);
-	return NULL;
+	    pthread_mutex_unlock(&buffer_mutex);
+	    return NULL;
     }
   }
 
   Matrix *result = bigmatrix[idx_con];
-
   idx_con = (idx_con + 1) % BOUNDED_BUFFER_SIZE; //ask elijah how to insert at 0
   count--;
    
@@ -84,38 +83,53 @@ Matrix * get()
 // Matrix PRODUCER worker thread
 void *prod_worker(void *arg)
 {
+  int sumtotal = 0;
+  int matrixtotal = 0;
+  
   counters_t *counters = (counters_t *)arg;
   
   while (get_cnt(counters->prod) < NUMBER_OF_MATRICES) {
      Matrix *matrix = GenMatrixRandom();
      put(matrix);
+     sumtotal += SumMatrix(matrix);
+     matrixtotal++;
      increment_cnt(counters->prod);     
   }
   
-  return NULL;
+  struct prodcons *prodstats = (struct prodcons *)malloc(sizeof(struct prodcons));
+  prodstats->sumtotal = sumtotal;
+  prodstats->matrixtotal = matrixtotal;
+  prodstats->multtotal = 0;
+  return (void *)prodstats;
 }
 
 // Matrix CONSUMER worker thread
 void *cons_worker(void *arg)
 {
+  int sumtotal = 0;
+  int matrixtotal = 0;
+  int multtotal = 0;
+  
   counters_t *counters = (counters_t *)arg;
   int consumed;
   Matrix *m1, *m2, *m3;
   m1 = NULL;
-  while (1) {   
+  while (1) {
+
+    // break if we have consumed all we need
     consumed = get_cnt(counters->cons);
+    if (consumed >= NUMBER_OF_MATRICES) {
+      break;
+    }
+
+    
     if (m1 == NULL) {
-      if (consumed >= NUMBER_OF_MATRICES) {
+      m1 = get();
+      if (m1 == NULL) {
         break;
       }
-      
-      m1 = get();
-      while (m1 == NULL) {
-	consumed = get_cnt(counters->cons);
-	if (consumed < NUMBER_OF_MATRICES) {
-	  m1 = get();
-	}
-      }
+      sumtotal += SumMatrix(m1);
+      matrixtotal++;
       increment_cnt(counters->cons);
     }
 
@@ -126,14 +140,20 @@ void *cons_worker(void *arg)
     }
 	
     m2 = get();
-    while (m2 == NULL) {
-      consumed = get_cnt(counters->cons);
-      if (consumed < NUMBER_OF_MATRICES) {
-	m2 = get();
-      }
+    if (m2 == NULL) {
+//      consumed = get_cnt(counters->cons);
+//      if (consumed < NUMBER_OF_MATRICES) {
+//	      m2 = get();
+//      }
+      break;
     }
+    sumtotal += SumMatrix(m2);
+    matrixtotal++;
     increment_cnt(counters->cons);
 
+
+
+// add lock so threads dont compete to display
     pthread_mutex_lock(&print_mutex);
     m3 = MatrixMultiply(m1, m2);
 
@@ -150,6 +170,7 @@ void *cons_worker(void *arg)
       m1=NULL;
       m2=NULL;
       m3=NULL;
+      multtotal++;
     } else {
       FreeMatrix(m2);
       m2 = NULL;
@@ -163,6 +184,15 @@ void *cons_worker(void *arg)
   if (m1 != NULL) {
     FreeMatrix(m1);
   }
-  
-  return NULL;
+  if (m2 != NULL) {
+    FreeMatrix(m2);
+  }
+  if (m3 != NULL) {
+    FreeMatrix(m3);
+  }
+  struct prodcons *prodstats = (struct prodcons *)malloc(sizeof(struct prodcons));
+  prodstats->sumtotal = sumtotal;
+  prodstats->matrixtotal = matrixtotal;
+  prodstats->multtotal = multtotal;
+  return (void *)prodstats;
 }

@@ -149,17 +149,6 @@ int main (int argc, char * argv[])
     pthread_create(&co[i],NULL, cons_worker, &prod_cons_counters);
   }
 
-  void* vptr;
-
-
-  for (int i = 0; i < numw; i++) {
-    ProdConsStats* project;
-    pthread_join(pr[i], (void **)&vptr); 
-    project->matrixtotal;
-  }
-  for (int i = 0; i < numw; i++) {
-    pthread_join(co[i], NULL);
-  }
 
   // These are used to aggregate total numbers for main thread output
   int prs = 0; // total #matrices produced
@@ -168,11 +157,38 @@ int main (int argc, char * argv[])
   int constot = 0; // total sum of elements for matrices consumed
   int consmul = 0; // total # multiplications
 
+  
+  void* vptr_prod;
+  for (int i = 0; i < numw; i++) {
+    pthread_join(pr[i], (void **)&vptr_prod);
+    struct prodcons* prod_stats = (struct prodcons *)vptr_prod;
+    if (prod_stats != NULL) {
+      prs += prod_stats->matrixtotal;
+      prodtot += prod_stats->sumtotal;
+      free(prod_stats);
+    }
+  }
+
+  void* vptr_cons;
+  for (int i = 0; i < numw; i++) {
+    pthread_join(co[i], (void **)&vptr_cons);
+    struct prodcons* cons_stats = (struct prodcons *)vptr_cons;
+    if (cons_stats != NULL) {
+      cos += cons_stats->matrixtotal;
+      constot += cons_stats->sumtotal;
+      consmul += cons_stats->multtotal;
+      free(cons_stats);
+    }
+  }
+
+
   // consume ProdConsStats from producer and consumer threads [HINT: return from join]
   // add up total matrix stats in prs, cos, prodtot, constot, consmul
 
-  printf("Sum of Matrix elements --> Produced=%d = Consumed=%d\n",prs,cos);
-  printf("Matrices produced=%d consumed=%d multiplied=%d\n",prodtot,constot,consmul);
-
+  printf("Sum of Matrix elements --> Produced=%d = Consumed=%d\n",prodtot,constot);
+  printf("Matrices produced=%d consumed=%d multiplied=%d\n",prs,cos,consmul);
+  free(bigmatrix);
+  free(prod_cons_counters.prod);
+  free(prod_cons_counters.cons);
   return 0;
 }
