@@ -25,7 +25,6 @@
 // Define Locks, Condition variables, and so on here
 pthread_mutex_t buffer_mutex = PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t prod_mutex = PTHREAD_MUTEX_INITIALIZER;
-pthread_mutex_t cons_mutex = PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t print_mutex = PTHREAD_MUTEX_INITIALIZER;
 	
 pthread_cond_t not_full = PTHREAD_COND_INITIALIZER;
@@ -108,6 +107,8 @@ void *prod_worker(void *arg)
 
 
   while (1) {
+    // added a lock here because there seemed to be a race condition with the counter,
+    // was not certain if we were allowed to modify the counter
     pthread_mutex_lock(&prod_mutex);
     
     if (get_cnt(counters->prod) >= NUMBER_OF_MATRICES) {
